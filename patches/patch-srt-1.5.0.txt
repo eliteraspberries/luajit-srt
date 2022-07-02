@@ -1,0 +1,20 @@
+diff -ur srt-1.5.0.orig/CMakeLists.txt srt-1.5.0/CMakeLists.txt
+--- srt-1.5.0.orig/CMakeLists.txt	2022-07-01 11:30:09.000000000 -0400
++++ srt-1.5.0/CMakeLists.txt	2022-07-01 11:30:14.000000000 -0400
+@@ -40,6 +40,7 @@
+ set_if(MICROSOFT   WIN32 AND (NOT MINGW AND NOT CYGWIN))
+ set_if(GNU         ${CMAKE_SYSTEM_NAME} MATCHES "GNU")
+ set_if(ANDROID     ${SYSNAME_LC} MATCHES "android")
++set_if(ANDROID     ${CMAKE_C_COMPILER_TARGET} MATCHES ".*-linux-android.*")
+ set_if(SUNOS       "${SYSNAME_LC}" MATCHES "sunos")
+ set_if(POSIX       LINUX OR DARWIN OR BSD OR SUNOS OR ANDROID OR (CYGWIN AND CYGWIN_USE_POSIX))
+ set_if(SYMLINKABLE LINUX OR DARWIN OR BSD OR SUNOS OR CYGWIN OR GNU)
+@@ -923,6 +924,8 @@
+ 		target_link_libraries(${TARGET_srt}_shared PRIVATE wsock32 ws2_32)
+ 	elseif (APPLE)
+ 		set_property(TARGET ${TARGET_srt}_shared PROPERTY MACOSX_RPATH ON)
++	elseif (ANDROID)
++		set_target_properties(${TARGET_srt}_shared PROPERTIES NO_SONAME ON)
+ 	endif()
+ 	if (USE_GNUSTL)
+ 		target_link_libraries(${TARGET_srt}_shared PRIVATE ${GNUSTL_LIBRARIES} ${GNUSTL_LDFLAGS})
