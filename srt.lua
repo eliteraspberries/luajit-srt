@@ -511,4 +511,116 @@ ffi.cdef([[
     int srt_connect_group(SRTSOCKET group, SRT_SOCKGROUPCONFIG name[], int arraysize);
 ]])
 
+function srt.startup()
+    return libsrt.srt_startup()
+end
+
+function srt.cleanup()
+    return libsrt.srt_cleanup()
+end
+
+function srt.getlasterror()
+    return ffi.string(libsrt.srt_getlasterror_str())
+end
+
+function srt.create_socket()
+    local socket = libsrt.srt_create_socket()
+    if socket == ffi.C.SRT_INVALID_SOCK then
+        return nil
+    end
+    return socket
+end
+
+function srt.close(socket)
+    libsrt.srt_close(socket)
+end
+
+function srt.getsockopt(socket, level, name)
+    local opt = ffi.new('int[1]')
+    opt[0] = ffi.C.SRT_ERROR
+    local len = ffi.new('int[1]')
+    len[0] = 0
+    local ret = libsrt.srt_getsockopt(
+        socket,
+        level,
+        name,
+        opt,
+        len
+    )
+    if ret == ffi.C.SRT_ERROR then
+        return ret
+    end
+    return opt[0]
+end
+
+function srt.setsockopt(socket, level, name, value)
+    local opt = ffi.new('int[1]')
+    opt[0] = value
+    return libsrt.srt_setsockopt(
+        socket,
+        level,
+        name,
+        opt,
+        ffi.sizeof('int')
+    )
+end
+
+function srt.setsockflag(socket, name, value)
+    local flag = ffi.new('int[1]')
+    flag[0] = value
+    return libsrt.srt_setsockflag(socket, name, flag, ffi.sizeof('int'))
+end
+
+function srt.getsockstate(socket)
+    local states = {
+       [tonumber(ffi.C.SRTS_INIT)] = 'SRTS_INIT',
+       [tonumber(ffi.C.SRTS_OPENED)] = 'SRTS_OPENED',
+       [tonumber(ffi.C.SRTS_LISTENING)] = 'SRTS_LISTENING',
+       [tonumber(ffi.C.SRTS_CONNECTING)] = 'SRTS_CONNECTING',
+       [tonumber(ffi.C.SRTS_CONNECTED)] = 'SRTS_CONNECTED',
+       [tonumber(ffi.C.SRTS_BROKEN)] = 'SRTS_BROKEN',
+       [tonumber(ffi.C.SRTS_CLOSING)] = 'SRTS_CLOSING',
+       [tonumber(ffi.C.SRTS_CLOSED)] = 'SRTS_CLOSED',
+       [tonumber(ffi.C.SRTS_NONEXIST)] = 'SRTS_NONEXIST',
+    }
+    local state = libsrt.srt_getsockstate(socket)
+    return state, states[tonumber(state)]
+end
+
+function srt.bind(socket, addr)
+    if ffi.istype('struct addrinfo *', addr) then
+        assert(addr[0].ai_addr ~= nil)
+        assert(addr[0].ai_addrlen > 0)
+        return libsrt.srt_bind(socket, addr[0].ai_addr, addr[0].ai_addrlen)
+    end
+    if ffi.istype('struct sockaddr *', addr) then
+        assert(addr ~= nil)
+        return libsrt.srt_bind(socket, addr, ffi.sizeof('struct sockaddr'))
+    end
+end
+
+function srt.listen(socket, backlog)
+    return libsrt.srt_listen(socket, backlog or 1)
+end
+
+function srt.accept(server)
+    local client = ffi.new('struct sockaddr_storage[1]')
+    ffi.fill(client, ffi.sizeof('struct sockaddr_storage'), 0)
+    local len = ffi.new('int[1]')
+    len[0] = ffi.sizeof('struct sockaddr_storage')
+    local socket = libsrt.srt_accept(
+        server,
+        ffi.cast('struct sockaddr *', client),
+        len
+    )
+    if socket == ffi.C.SRT_INVALID_SOCK then
+        return nil
+    end
+    return socket
+end
+
+function srt.send(socket, buffer, size)
+    return libsrt.srt_send(socket, buffer, size)
+end
+
 return srt
